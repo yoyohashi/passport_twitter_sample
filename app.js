@@ -1,6 +1,8 @@
 var express = require('express')
   , routes = require('./routes')
   , user = require('./routes/user')
+  , http = require('http')
+  , path = require('path')
   , passport = require('passport')
   , TwitterStrategy = require('passport-twitter').Strategy;
 
@@ -44,14 +46,16 @@ app.configure(function(){
   app.use(express.logger('dev'));
   app.use(express.bodyParser());
   app.use(express.methodOverride());
-  app.use(app.router);
-  app.use(express.static(path.join(__dirname, 'public')));
 
-  // 以下を追加
+  // ここから追加
   app.use(express.cookieParser()); 
   app.use(express.session({secret: "hogehoge"}));
   app.use(passport.initialize()); 
   app.use(passport.session()); 
+  // ここまで追加
+
+  app.use(app.router);
+  app.use(express.static(path.join(__dirname, 'public')));
 });
 
 app.configure('development', function(){
@@ -62,16 +66,16 @@ app.get('/', routes.index);
 app.get('/login', routes.login);
 app.get('/users', user.list);
 
-// -- 追加したルート --
-// ユーザーからリクエストをもらうルート
+// Twitterの認証
 app.get("/auth/twitter", passport.authenticate('twitter'));
 
-// Twitterからcallbackうけるルート
+// Twitterからのcallback
 app.get("/auth/twitter/callback", passport.authenticate('twitter', {
   successRedirect: '/timeline',
   failureRedirect: '/login'
 }));
 
+// タイムラインの表示
 app.get('/timeline', function(req,res){
   // search tweets.
     passport._strategies.twitter._oauth.getProtectedResource(
